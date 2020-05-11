@@ -16,7 +16,7 @@
 % \setDocSubtitle{A subtitle}
 
 \author{%
-Melissa Graham
+M.~L.~Graham et al.
 }
 
 \setDocRef{DMTN-151}
@@ -36,7 +36,8 @@ This document argues that, in order to better enable extragalactic transient sci
 % Fields: VERSION, DATE, DESCRIPTION, OWNER NAME.
 % See LPM-51 for version number policy.
 \setDocChangeRecord{%
-  \addtohist{1}{YYYY-MM-DD}{Unreleased.}{Melissa Graham}
+  \addtohist{0}{2020-02-26}{Inception.}{Melissa Graham}
+  \addtohist{1}{2020-05-11}{Pre-RFC.}{Melissa Graham}
 }
 
 
@@ -47,8 +48,248 @@ This document argues that, in order to better enable extragalactic transient sci
 % Frequently for a technote we do not want a title page  uncomment this to remove the title page and changelog.
 % use \mkshorttitle to remove the extra pages
 
-% ADD CONTENT HERE
-% You can also use the \input command to include several content files.
+% % % % % % % % % % % % % % % % % % % % % % % % % %
+\section{Introduction} \label{sec:intro}
+
+LSST will issue alert packets within $60$ seconds for all sources detected during difference image analysis (DIA; {\tt DIASources}), which are associated by sky coordinate into objects ({\tt DIAObject}). 
+Individuals and brokers processing alerts will use the information in these packets to rapidly evaluate and prioritize {\tt DIAObjects} for follow-up with limited resources.
+Thus the contents of the alert packet have been designed to contain a sufficient amount of LSST data about each {\tt DIAObject} to enable immediate analysis.
+
+One important piece of information is the association of each {\tt DIAObject} with a static-sky {\tt Object} from the Data Release catalogs.
+Brokers will use the {\tt Object} association to obtain data about the static-sky object from the DR catalogs, such as whether it might be galactic or extragalactic, at high- or low-redshift, nuclear or offset from a host, etc.
+All of this information can help an alert stream user identify and prioritize their targets of interest, and delivering alerts \emph{with} the static-sky association already completed avoids the situation of multiple users cross-matching in real time.
+The {\tt Object} association for {\tt DIAObjects} will of course also be used by scientists working with the Prompt or Data Release {\tt DIAObjects} catalogs on longer timescales, not just alert consumers.
+However, the main goal of this document is to assess the best option -- from a scientific perspective -- for {\tt Object} association that can be completed during the 60 second Alert Production timescale.
+
+Below, Section \ref{sec:DMplans} describes the current plan for associating {\tt DIAObjects} with the DR {\tt Objects} catalog; Section \ref{sec:options} presents and discusses options that have been used successfully by other surveys; and Section \ref{sec:recs} makes recommendations for additions to the {\tt DIAObject} catalog to improve associations for extragalactic transients and their host galaxies.
+
+
+\section{Current DM Plans for Host Galaxy Association}\label{sec:DMplans}
+
+With respect to associations between Prompt {\tt DIAObjects} and Data Release {\tt Objects}, the contents of the alert packet as defined in the Data Products Definitions Document (DPDD; \citeds{LSE-163}) includes the following:
+\begin{itemize}
+\item {\tt nearbyObj} ({\tt unit64[6]}), the {\it "closest {\tt Objects} (3 stars and 3 galaxies) in Data Release database"}
+\item {\tt nearbyObjDist} ({\tt float[6]}), the {\it "distances to {\tt nearbyObj}"} in arcseconds
+\item {\tt nearbyObjLnP} ({\tt float[6]}), the {\it "natural log of the probability that the observed {\tt DIAObject} is the same as the nearby {\tt Object}"}
+\end{itemize}
+For the latter, there is a footnote that says {\it "This quantity will be computed by marginalizing over the product of position and proper motion error ellipses of the {\tt Object} and {\tt DIAObject}, assuming an appropriate prior"}.
+
+The current definitions of {\tt nearbyObj}, {\tt nearbyObjDist}, and {\tt nearbyObjLnP} are not as useful as they could be for transients in host galaxies. 
+For extragalactic transients, the three nearest galaxies are not always the three most likely host galaxies, and the radial distance in arcseconds matters less than a \emph{separation distance} which accounts for the galaxies' spatial luminosity profiles.
+Furthermore, the definition of {\tt nearbyObjLnP} is only appropriate for static variable point sources (stars): for transients in host galaxies, the observed {\tt DIAObject} will never be ``the same as the nearby {\tt Object}".
+
+
+\section{Options to Improve Host Galaxy Association}\label{sec:options}
+
+Statistically, the most likely host for a given transient is the galaxy which contributes the most optical flux at the transient's location.
+This is usually estimated by first calculating a \emph{separation distance} from the nearby galaxies to the transient which is expressed in terms of the galaxy's spatial luminosity profile, and then assuming the galaxy with the lowest separation distance is the host.
+The following are several options for estimating which nearby galaxy is the most likely host of an extragalactic transient.
+
+\subsection{Effective Radius}\label{ssec:options_Re}
+
+For the separation distance, use the radial distance from the core of the galaxy to the location of the transient, divided by the effective radius of the galaxy.
+The DR {\tt Objects} table is already planned to contain suitable effective radii such as the parameter {\tt kronRad90} \citedsp{LSE-163}.
+This option for the separation distance would not require any additional processing aside from dividing the radial distance from transient to {\tt Object} by the effective radius of the {\tt Object}.
+Although this kind of separation distance would account for the relative sizes of the potential host galaxies, it does not account for their position angles, and so would not be as accurate for assessing potential high-inclination host galaxies.
+
+\subsection{Second Moments}
+
+Calculate a separation distance based on the two-dimensional luminosity profile of the nearby galaxies.
+For example, \citet{2006ApJ...648..868S} describe the method applied to the Supernova Legacy Survey (SNLS), using a separation distance of $R^2 = C_{xx} x_r^2 + C_{yy} y_r^2 + C_{xy} x_r y_r$, where $C_{xx}$, $C_{yy}$, and $C_{xy}$ are ellipse parameters derived from the second moments of the galaxy luminosity profile and $x_r$,$y_r$ are the on-sky distances between the centroids of the transient and the galaxy.
+The DR {\tt Objects} table is already planned to contain the second moments of the galaxy luminosity profiles ({\tt Ixx}, {\tt Iyy}, and {\tt Ixy}; \citeds{LSE-163}).
+A step-by-step description of how this separation distance can be calculated from planned {\tt DIAObject} and {\tt Object} table elements is provided in Section \ref{sec:appA}.
+
+Multiple recent surveys have used this method (or similar) to associate transients with their host galaxies, such as \citet{2018PASP..130f4002S} for SDSS supernovae, and \citet{2016AJ....152..154G} who use real and simulated data to evaluate the optimal method for host association.
+This option for the separation distance requires slightly more computational steps, but would account for both the relative sizes and position angles of the potential host galaxies. 
+
+\subsection{2D Algorithms}
+
+Aside from adopting a separation distance, there are more complicated methods for identifying the most likely host for a given transient.
+For example, the nearby galaxy with the smallest fraction of light interior to an isophot through the transient's location, where the isophot shape is given more degrees of freedom and not constrained to concentric ellipticals as in the second moment method above.
+Another example is to use an algorithm that provides deblended footprints for nearby extended objects, and that can estimate the fraction of light in given pixel that should be attributed to each (e.g., as the SCARLET deblender can do, \cite{2018A&C....24..129M}).
+The most likely host galaxy would be the one which contributes the most flux at the pixel location of a transient.
+While all DR {\tt Objects} will be associated with a footprint (a region of connected pixels), the footprint information will not be stored in the {\tt Object} table.
+The use of footprints in identifying potential host galaxies would require more computational resources during Prompt processing, but would probably return a more accurate host association for only a very small fraction of {\tt DIAObjects}. 
+
+\subsection{Hostless Transients}
+
+For some scientific analyses, transients which are $>$3-5 effective radii away from the nearest galaxy, or for which $>99\%$ of the potential host's luminosity is within the radial distance between transient and host center, are considered ``hostless" (e.g., \citealt{2011ApJ...729..142S}).
+Such a cutoff has been appropriate for past samples of $\sim$hundreds of transients, but will not be appropriate for the LSST sample size.
+Furthermore, the decision of whether and how to consider a transient ``hostless" is best left as a scientific decision for the end-user.
+Thus, no such cut should be applied during the association of {\tt DIAObjects} and {\tt Objects}, and the most likely hosts should still be reported, even if the probability is low.
+
+\subsection{Galaxy/Transient Types}
+
+The association of transients with their host galaxy can be more accurate if their properties are also considered.
+For example, the potential host galaxy's redshift can be used to calculate separation distances in physical units, or to estimate the absolute brightness of the transient and consider whether it is physically plausible.
+Priors based on the established correlations between transient types and host galaxy morphology or color can also be used to refine a probabilistic host association, such as how core collapse supernovae are almost always associated with star formation (except for a few notable cases, e.g., \citealt{2012ApJ...753...68G,2019ApJ...887..127I}).
+A demonstration that these correlations between host and transient types are so robust that the host type can be used to provide a statistical classification of the transient type was presented by \citet{2013ApJ...778..167F}.
+
+However, making science-informed associations between transients and galaxies based on any kind of derived properties is beyond the scope of Prompt processing, and is best left to the users on a case-by-case basis. 
+Thus, properties of the transients and/or the nearby galaxies (beyond their coordinates and luminosity profile) should not be used during the association of {\tt DIAObjects} and {\tt Objects}.
+For a very thorough assessment of an optimized, science-driven system for associating supernovae and their host galaxies -- including the role and performance of machine learning methods -- we direct the reader to \citet{2016AJ....152..154G}.
+
+\section{Recommendations}\label{sec:recs}
+
+\textbf{1: } Two new {\tt DIAObject} catalog elements should be added: {\tt potentialHost}, containing the {\tt objectId} for the three galaxies with the lowest separation distances, and {\tt potentialHostSeparation}, containing the separation distances for those three galaxies.
+
+\textbf{2: } These two new {\tt DIAObject} catalog elements should use a separation distance calculated with respect to the transient location using the second moments of each galaxy's luminosity profile (as described in Section \ref{sec:appA}).
+
+These new catalog elements add unit64[3] and float[3] to the {\tt DIAObject} catalog and to each alert, which is a small and worthwhile addition.
+Including the three galaxies (instead of the two or one) with the lowest separation distances is motivated by the high-reward science case of correctly associating transients in the outskirts of large nearby host galaxies, as described in Appendix \ref{sec:appB}. 
+This science case also needs separation distances to be initially calculated for all galaxies within $\sim$200 arcsec (i.e., $4R_e$ of a large nearby galaxy).
+How to identify this sub-set of galaxies in the vicinity (e.g.,. radial on-sky distance, HEALpix) is left as a technical implementation detail.
+Furthermore, this science case requires that any large bright nearby galaxies which are not in the {\tt Object} catalogs should have their coordinates and second moments imported so that they are included in this potential host association process -- this is also left as a technical implementation detail.
+
+The existing {\tt DIAObject} catalog elements {\tt nearbyObj} and {\tt nearbyObjDist} can remain unchanged and an analog for the existing {\tt DIAObject} catalog element {\tt nearbyObjLnP}, which represents the probability of association for static but variable point sources (stars), is not necessary for potential host galaxies.
+
+
+\subsection{Draft RFC}\label{ssec:draft_rfc}
+
+\textit{The following text should be posted as a Request For Comments (RFC) in Jira, and at the same time this DMTN should be made official and available. The RFC would spawn an LSST Change Request on the Data Products Definitions Document.}
+
+In order to better enable extragalactic transient science with brokers, it is proposed that two new {\tt DIAObject} table elements be computed during Alert Production:
+(1) {\tt potentialHost}, containing the {\tt objectId} for the three {\tt Object} catalog extended sources with the lowest separation distances, and
+(2) {\tt potentialHostSeparation}, the separation distances for those three {\tt Objects}.
+The separation distance should be calculated with respect to the transient location using the second moments of each {\tt Object}'s luminosity profile, as described in DMTN-XXX.
+Further motivation for these new table elements, as well as specifications that would influence the options for technical implementation, and also described in DMTN-XXX.
+All parameters required for the calculation of the separation distances are already planned to be in the {\tt DIAObject} and {\tt Object} tables, and this change would only add unit64[3] and float[3] per {\tt DIAObject} catalog entry, and per alert.
+
+The change request on the DPDD would be to add two rows to {\tt DIAObject} Table (Table 3), and a footnote.
+
+\begin{tabular}{p{4.5cm} p{2cm} p{8cm}}
+{\tt potentialHost} & unit64[3] & Three extended {\tt Objects} with lowest separations in Data Release database$^{\rm FN}$. \\
+{\tt potentialHostSeparation} & float[3] & Separations of {\tt potentialHost}.   \\
+\end{tabular}
+
+$^{\rm FN}$ Separations should be calculated with respect to the transient location using the second moments of each {\tt Object}'s luminosity profile, as described in DMTN-XXX.
+
+
+
+\clearpage
+\section{Appendix A: Separation Distance from Second Moments}\label{sec:appA}
+
+From the LSST catalogs the following {\tt Object} table elements are used to define the parameters needed to calculate the separation distance \citedsp{LSE-163}:
+
+\begin{center}
+\begin{tabular}{ccll}
+\hline
+Parameter & Unit & Table Element & Description \\
+\hline
+$x_{\rm trans},y_{\rm trans}$ & $\rm degrees$ & {\tt DIAObject} {\tt radec} & transient centroid  \\
+$x_{\rm gal},y_{\rm gal}$       & $\rm degrees$ & {\tt Object} {\tt radec}       & galaxy centroid      \\
+$\overline{x^2}$,$\overline{y^2}$,$\overline{xy}$ & $\rm arcsec^2$  & {\tt Object} {\tt Ixx}, {\tt Iyy}, {\tt Ixy} & galaxy second moments \\
+\hline
+\end{tabular}
+\end{center}
+
+There might be an issue with using the {\tt Object} catalog second moments: the {\tt Ixx}, {\tt Iyy}, and {\tt Ixy} are defined with with respect to the local tract/patch and not sky coordinates (Jira DM-19519).
+Although the local tangent projection will probably work fine for this application of the second moments, this should be verified at the time of implementation.
+
+As described in Section 10 of E. Bertin's Source Extractor manual\footnote{Version 2.3: \url{https://www.astromatic.net/pubsvn/software/sextractor/trunk/doc/sextractor.pdf}} (and presumably many other places), the unitless ellipse parameters $C_{xx},C_{yy},C_{xy}$ can be calculated from the second moments via:
+
+\begin{equation}
+C_{xx} = \frac{\overline{y^2}}{\sqrt{ \left( \frac{\overline{x^2}-\overline{y^2}}{2} \right)^2 + \overline{xy}^2}}
+\end{equation}
+
+\begin{equation}
+C_{yy} = \frac{\overline{x^2}}{\sqrt{ \left( \frac{\overline{x^2}-\overline{y^2}}{2} \right)^2 + \overline{xy}^2}}
+\end{equation}
+
+\begin{equation}
+C_{xy} = -2 \frac{\overline{xy}}{\sqrt{ \left( \frac{\overline{x^2}-\overline{y^2}}{2} \right)^2 + \overline{xy}^2}}
+\end{equation}
+
+The sky distances between the transient and galaxy centroids are calculated as follows, and include the $\cos(\delta)$ factor and a conversion from units of degrees to arcseconds:
+
+\begin{equation}
+x_r = 3600(x_{\rm SN} - x_{\rm gal})
+\end{equation}
+
+\begin{equation}
+y_r = 3600(y_{\rm SN} - y_{\rm gal})\cos{y_{\rm gal}}
+\end{equation}
+
+Finally, the separation distance $R$ in arcseconds is given by:
+
+\begin{equation}
+R^2 = C_{xx} x_r^2 + C_{yy} y_r^2 + C_{xy} x_r y_r.
+\end{equation}
+
+
+\clearpage
+\section{Appendix B: Overcoming Background Galaxy Contamination}\label{sec:appB}
+
+In this appendix, the probability of failed host galaxy associations for nearby transients with large host offsets due to interloping background galaxies is quantified, and used to evaluate the minimum number of potential hosts that should be stored in a {\tt DIAObect} record. 
+For simplicity, this appendix uses the effective radius as the separation distance (Section \ref{ssec:options_Re}).
+
+The 10-year {\tt Object} catalogs will include $\sim$4 billion galaxies with $i<25$ mag across the $\sim$20000 $\rm deg^2$ main survey area, known as the ``gold" sample, especially in the context of weak lensing studies \citedsp{LPM-17}.
+However, the 10-year coadded depths will detect galaxies down to 5$\sigma$ limiting magnitudes of 26.1, 27.4, 27.5, 26.8, 26.1, and 24.9 mag in filters {\it ugrizy}; this is $\sim$3 times as many as in the ``gold" sample, or $\sim$10 billion galaxies.
+This high density of background galaxies complicates the process for associating large nearby host galaxies with their transients, especially the rare transients in their outskirts.
+
+Consider a transient at $3R_e$ from the center of a nearby galaxy with $z=0.01$ and an effective radius of $R_e = 10$ kpc ($\sim$50 arcsec).
+In order for this transient to be associated with it's true host, the separation distance for all {\tt Objects} within a radius of at least $3R_e$, and thus an area of at least $A_{3R_e} = \pi (3R_e)^2 = 0.0052$ $\rm deg^2$, would need to be considered.
+Based on the final 10-year number of detected galaxies (10 billion) and the total survey area (20000 deg$^2$), that is $\sim (10^10 / 20000) \times 0.0052 \approx 2600$ galaxies.
+Furthermore, the true host galaxy must have a lower separation distance than the $N$ nearest background galaxies, where $N$ is the number of potential hosts that will be listed in the {\tt DIAObject} parameters {\tt potentialHost} and {\tt potentialHostSeparation}.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=8cm]{hg_Mr_dist.png}
+\includegraphics[width=8cm]{hg_Mr_vs_z.png}
+\includegraphics[width=8cm]{hg_rad_dist.png}
+\includegraphics[width=8cm]{hg_rad_vs_z.png}
+\includegraphics[width=8cm]{hg_z_dist.png}
+\includegraphics[width=8cm]{hg_rad_vs_Mr.png}
+\caption{{\it Left:} Histograms of the synthesized absolute $r$-band intrinsic magnitude (top) and radius (middle) for catalog galaxies, and the simulated galaxy redshifts (bottom). {\it Right:} Correlation with redshift of the synthesized intrinsic magnitude (top) and radius (middle), and the approximate relation between radius and intrinsic magnitude (bottom).  \label{fig:simcat}}
+\end{center}
+\end{figure}
+
+To investigate the probability of host-association failure for nearby transients, we simulate a mock catalog of randomly distributed random background interloper galaxies.
+It is based on the same LSST-like mock galaxy catalog used by \citet{2018AJ....155....1G} for studies of photometric redshifts.
+For this experiment the catalog is limited to galaxies with at least a 5$\sigma$ detection in the {\it griz} bands at the projected 10-year depths listed above.
+The catalog contains redshifts and apparent {\it ugrizy} magnitudes, which are used to approximate intrinsic absolute $r$-band magnitudes (without $K$-correction, simply using a distance modulus based on redshift and $M_r=m_r-\mu$).
+The absolute magnitudes are used to synthesize approximate galaxy radii based on the relationship between absolute magnitude and radius for late-type galaxies defined in Figure 3 of \citet{2003MNRAS.343..978S}.
+These synthesized radii are over-estimates because late-types are generally larger than early-types, and because this magnitude-radius relation was defined for SDSS galaxies at lower redshifts than the LSST high-$z$ galaxies it is being applied to.
+This is a deliberate choice to overestimate, because it will result in upper limits on the rate of interlopers, which will allow for conservative estimates about the effect of background interlopers.
+The characteristics of this crude galaxy catalog are illustrated in Figure \ref{fig:simcat}.
+
+Consider again the large nearby galaxy with $R_e=10$ kpc at a redshift of $z=0.01$, for which the sky area within $3R_e$ is $A(3R_e)=0.0052$ $\rm deg^2$ and contains $\sim$2600 background galaxies.
+From the simulated catalog described above, 100 sets of background galaxies are randomly selected.
+For each set, the fraction of the nearby galaxy's area which is covered by the area of interloping background galaxies is calculated: $f_A = \sum{A(3R_{e,{\rm bkg}})} / 0.0052$.
+This fraction is equivalent to the probability that a transient at $3R_e$ from this large nearby host will be within $3R_{e,{\rm bkg}}$ (i.e., will be closer to) a background interloper.
+The probability that this transient is closer to $N$ interlopers than to its true host is $P_{\rm fail} = (f_A)^N$.
+This is the probability of a failed host association, where ``failed" means that the {\tt DIAObject} record of the $N$ galaxies with the lowest separation distances does not include the true host.
+For this large nearby galaxy, average values of $f_A$ and $P_{\rm fail}$ from the 100 simulated background sets are $f_A = 0.181\pm0.008$ and $P_{\rm fail} (N=3) = 0.006\pm0.0008$
+
+Since this probability of failure is based on the sky density of background galaxies, it is independent of the radius and redshift of the nearby galaxy. 
+However, it does depend on the factor applied to effective radius (i.e., the offset of transient considered) and $N$, the number of potential hosts recorded in the {\tt DIAObject} catalog.
+Figure \ref{fig:pfail} shows the probability of failure as a function of $R_e$ and $N$.
+\textbf{These are upper limits on the probability of failure} because they are derived from upper-estimates of galaxy radii and the sky density of the final 10-year LSST galaxy catalog, as described above. 
+
+To assist in the interpretation of Figure \ref{fig:pfail}, the following describes several conclusions drawn from points in this plot:
+\begin{itemize}
+\item Transients with low host offsets, $1R_e$, are closer to (within $1R_{e,{\rm bkg}}$ of) one background interloper $\sim2\%$ of the time (purple point at $1R_e$). (However, given the high surface brightness of nearby galaxies, such a background galaxy might not be detected.)
+\item Transients with high host offsets, $5R_e$, are closer to (within $5R_{e,{\rm bkg}}$ of) one background interloper $\sim50\%$ of the time (purple point at $5R_e$), and closer to six background interlopers $>1\%$ of the time (magenta point at $5R_e$).
+\item In order to achieve a $1\%$ probability of failure for transients offset by $3R_e$ from large nearby galaxies, the {\tt DIAObject} catalog record should include the $N=3$ galaxies with the lowest separation distances (green point at $3R_e$).
+\end{itemize} 
+
+All of the above experiment can be summarized in two main recommendations aimed at reducing the probability of failure in associating nearby, large-offset transients with their true hosts:
+\begin{enumerate}
+\item The separation distances for all galaxies within at least $4R_e \approx 200$ arcsec should be calculated and considered.
+\item The 3 galaxies with the lowest separation distances should be included in the {\tt DIAObject} catalog record.
+\end{enumerate}
+Adopting these recommendations would cause up to $1\%$ of the transients at $3R_e$ from large nearby galaxies to experience a failed host association, where the true host is not listed in the {\tt DIAObject} record.
+Since $3R_e$ encompasses $\sim99\%$ of a galaxy's light, and most transient types are distributed proportional to the light, \textbf{the upper limit on the host association failure rate} for nearby transients should be $\sim0.01\%$.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=12cm]{hg_P_vs_Re.png}
+\caption{The probability that a transient will fail to be associated with a large ($R_e=10$ kpc) nearby host galaxy due to background interlopers, as a function of the transient's offset in effective radii from galaxies in the vicinity (including the true host), where ``failure" means the true host's separation distance is not in the top $N$ nearest galaxies. \textbf{This is a ``worst case scenario" because it applies to an very large nearby galaxy, and all background galaxy radii estimates are upper limits} (as described in the text). Error bars show the standard deviation from the 100 randomly-generated sets of background galaxies. \label{fig:pfail}}
+\end{center}
+\end{figure}
+
+
+\clearpage
 
 \appendix
 % Include all the relevant bib files.
@@ -61,9 +302,5 @@ This document argues that, in order to better enable extragalactic transient sci
 \input{acronyms.tex}
 % If you want glossary uncomment below -- comment out the two lines above
 %\printglossaries
-
-
-
-
 
 \end{document}
