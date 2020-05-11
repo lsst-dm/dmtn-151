@@ -144,15 +144,15 @@ Furthermore, this science case requires that any large bright nearby galaxies wh
 The existing {\tt DIAObject} catalog elements {\tt nearbyObj} and {\tt nearbyObjDist} can remain unchanged and an analog for the existing {\tt DIAObject} catalog element {\tt nearbyObjLnP}, which represents the probability of association for static but variable point sources (stars), is not necessary for potential host galaxies.
 
 
-\subsection{Draft RFC}\label{ssec:draft_rfc}
+\subsection{RFC-695}\label{ssec:draft_rfc}
 
-\textit{The following text should be posted as a Request For Comments (RFC) in Jira, and at the same time this DMTN should be made official and available. The RFC would spawn an LSST Change Request on the Data Products Definitions Document.}
+\textit{The following text has been posted as a Request For Comments, RFC-695 in Jira.}
 
 In order to better enable extragalactic transient science with brokers, it is proposed that two new {\tt DIAObject} table elements be computed during Alert Production:
 (1) {\tt potentialHost}, containing the {\tt objectId} for the three {\tt Object} catalog extended sources with the lowest separation distances, and
 (2) {\tt potentialHostSeparation}, the separation distances for those three {\tt Objects}.
-The separation distance should be calculated with respect to the transient location using the second moments of each {\tt Object}'s luminosity profile, as described in DMTN-XXX.
-Further motivation for these new table elements, as well as specifications that would influence the options for technical implementation, and also described in DMTN-XXX.
+The separation distance should be calculated with respect to the transient location using the second moments of each {\tt Object}'s luminosity profile, as described in DMTN-151.
+Further motivation for these new table elements, as well as specifications that would influence the options for technical implementation, and also described in DMTN-151.
 All parameters required for the calculation of the separation distances are already planned to be in the {\tt DIAObject} and {\tt Object} tables, and this change would only add unit64[3] and float[3] per {\tt DIAObject} catalog entry, and per alert.
 
 The change request on the DPDD would be to add two rows to {\tt DIAObject} Table (Table 3), and a footnote.
@@ -162,7 +162,7 @@ The change request on the DPDD would be to add two rows to {\tt DIAObject} Table
 {\tt potentialHostSeparation} & float[3] & Separations of {\tt potentialHost}.   \\
 \end{tabular}
 
-$^{\rm FN}$ Separations should be calculated with respect to the transient location using the second moments of each {\tt Object}'s luminosity profile, as described in DMTN-XXX.
+$^{\rm FN}$ Separations should be calculated with respect to the transient location using the second moments of each {\tt Object}'s luminosity profile, as described in DMTN-151.
 
 
 
