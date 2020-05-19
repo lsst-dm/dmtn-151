@@ -92,7 +92,7 @@ The DR {\tt Objects} table is already planned to contain suitable effective radi
 This option for the separation distance would not require any additional processing aside from dividing the radial distance from transient to {\tt Object} by the effective radius of the {\tt Object}.
 Although this kind of separation distance would account for the relative sizes of the potential host galaxies, it does not account for their position angles, and so would not be as accurate for assessing potential high-inclination host galaxies.
 
-\subsection{Second Moments}
+\subsection{Second Moments}\label{ssec:options_mom}
 
 Calculate a separation distance based on the two-dimensional luminosity profile of the nearby galaxies.
 For example, \citet{2006ApJ...648..868S} describe the method applied to the Supernova Legacy Survey (SNLS), using a separation distance of $R^2 = C_{xx} x_r^2 + C_{yy} y_r^2 + C_{xy} x_r y_r$, where $C_{xx}$, $C_{yy}$, and $C_{xy}$ are ellipse parameters derived from the second moments of the galaxy luminosity profile and $x_r$,$y_r$ are the on-sky distances between the centroids of the transient and the galaxy.
@@ -142,6 +142,20 @@ How to identify this sub-set of galaxies in the vicinity (e.g.,. radial on-sky d
 Furthermore, this science case requires that any large bright nearby galaxies which are not in the {\tt Object} catalogs should have their coordinates and second moments imported so that they are included in this potential host association process -- this is also left as a technical implementation detail.
 
 The existing {\tt DIAObject} catalog elements {\tt nearbyObj} and {\tt nearbyObjDist} can remain unchanged and an analog for the existing {\tt DIAObject} catalog element {\tt nearbyObjLnP}, which represents the probability of association for static but variable point sources (stars), is not necessary for potential host galaxies.
+
+\subsection{Option: Hierarchical Association}
+
+Instead of associating a {\tt DIAObject} with the three extended {\tt Objects} with the lowest separation distance, associate with the three nearest neighbors at three size scales.
+For example, the nearest $R_e<10"$ neighbor within $d<100"$ (high-$z$ and small galaxies), the nearest $R_e<100"$ neighbor within $d<1000"$ (large low-$z$ galaxies), and the nearest $R_e<1000"$ neighbor within $d<10000"$ (very large nearby galaxies).
+In this option, the ``nearest neighbor" would be the extended {\tt Object} with the lowest separation distance, as calculated from, e.g., the second moments (Section \ref{ssec:options_mom}).
+
+However, this option does not avoid the issue of contamination by background galaxies as discussed in Appendix \ref{sec:appB}.
+To mitigate background interlopers, the nearest \emph{three} extended sources for each size scale should be included.
+This might seem unnecessary for the largest size scale but it would assist with identifying transients in galaxy groups and clusters, especially the rare transients with large offsets which might belong to intracluster stellar populations. 
+
+This option would add unit64[9] and float[9] to the {\tt DIAObject} catalog and to each alert, instead of unit64[3] and float[3].
+However, it would also vastly reduce the number of extended {\tt Objects} that are considered during the host association process, and would impose a lower computational load.
+Since 9 potential associations are reported instead of 3, this option would also lower the probability of the failure scenario (in which the true host galaxy is not associated with the {\tt DIAObject}) and increase the amount of contextual information passed in the alert, which would benefit science applications.
 
 
 \subsection{RFC-695}\label{ssec:draft_rfc}
