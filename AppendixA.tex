@@ -1,0 +1,48 @@
+\section{Appendix A: Separation Distance from Second Moments}\label{sec:appA}
+
+From the LSST catalogs the following {\tt Object} table elements are used to define the parameters needed to calculate the separation distance \citedsp{LSE-163}:
+
+\begin{center}
+\begin{tabular}{ccll}
+\hline
+Parameter & Unit & Table Element & Description \\
+\hline
+$x_{\rm trans},y_{\rm trans}$ & $\rm degrees$ & {\tt DIAObject} {\tt radec} & transient centroid  \\
+$x_{\rm gal},y_{\rm gal}$       & $\rm degrees$ & {\tt Object} {\tt radec}       & galaxy centroid      \\
+$\overline{x^2}$,$\overline{y^2}$,$\overline{xy}$ & $\rm arcsec^2$  & {\tt Object} {\tt Ixx}, {\tt Iyy}, {\tt Ixy} & galaxy second moments \\
+\hline
+\end{tabular}
+\end{center}
+
+There might be an issue with using the {\tt Object} catalog second moments: the {\tt Ixx}, {\tt Iyy}, and {\tt Ixy} are defined with with respect to the local tract/patch and not sky coordinates (Jira DM-19519).
+Although the local tangent projection will probably work fine for this application of the second moments, this should be verified at the time of implementation.
+
+As described in Section 10 of E. Bertin's Source Extractor manual\footnote{Version 2.3: \url{https://www.astromatic.net/pubsvn/software/sextractor/trunk/doc/sextractor.pdf}} (and presumably many other places), the unitless ellipse parameters $C_{xx},C_{yy},C_{xy}$ can be calculated from the second moments via:
+
+\begin{equation}
+C_{xx} = \frac{\overline{y^2}}{\sqrt{ \left( \frac{\overline{x^2}-\overline{y^2}}{2} \right)^2 + \overline{xy}^2}}
+\end{equation}
+
+\begin{equation}
+C_{yy} = \frac{\overline{x^2}}{\sqrt{ \left( \frac{\overline{x^2}-\overline{y^2}}{2} \right)^2 + \overline{xy}^2}}
+\end{equation}
+
+\begin{equation}
+C_{xy} = -2 \frac{\overline{xy}}{\sqrt{ \left( \frac{\overline{x^2}-\overline{y^2}}{2} \right)^2 + \overline{xy}^2}}
+\end{equation}
+
+The sky distances between the transient and galaxy centroids are calculated as follows, and include the $\cos(\delta)$ factor and a conversion from units of degrees to arcseconds:
+
+\begin{equation}
+x_r = 3600(x_{\rm SN} - x_{\rm gal})
+\end{equation}
+
+\begin{equation}
+y_r = 3600(y_{\rm SN} - y_{\rm gal})\cos{y_{\rm gal}}
+\end{equation}
+
+Finally, the separation distance $R$ in arcseconds is given by:
+
+\begin{equation}
+R^2 = C_{xx} x_r^2 + C_{yy} y_r^2 + C_{xy} x_r y_r.
+\end{equation}
