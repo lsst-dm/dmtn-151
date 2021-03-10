@@ -1,7 +1,7 @@
 .. image:: https://img.shields.io/badge/dmtn--151-lsst.io-brightgreen.svg
    :target: https://dmtn-151.lsst.io
-.. image:: https://travis-ci.com/lsst-dm/dmtn-151.svg
-   :target: https://travis-ci.com/lsst-dm/dmtn-151
+.. image:: https://github.com/lsst-dm/dmtn-151/workflows/CI/badge.svg
+   :target: https://github.com/lsst-dm/dmtn-151/actions/
 
 ######################################
 Host Galaxy Association for DIAObjects
@@ -10,7 +10,7 @@ Host Galaxy Association for DIAObjects
 DMTN-151
 ========
 
-This document argues that, in order to better enable extragalactic transient science with brokers, two new DIAObject catalog elements should be computed and included in the alert packets: (1) the objectId for the three Object catalog galaxies with the lowest separation distance (based on the galaxy’s 2D luminosity profile) from the DIAObject, and (2) the separation distances for those three Objects.
+This document describes the DIAObject parameters that associate extragalactic transients with potential host galaxies, and which will be generated during Alert Production and included in the alert packet.
 
 Links
 =====
