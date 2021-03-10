@@ -68,7 +68,7 @@ This document describes the elements of the {\tt DIAObject} catalog that contain
 
 \section{{\tt DIAObject}--{\tt Object} Association Parameters}\label{sec:params}
 
-\subsection{Relevant to all transients and variables}\label{ssec:params_all}
+\subsection{Parameters for all transients and variables}\label{ssec:params_all}
 
 The general parameters regarding associations between {\tt DIAObjects} and {\tt Objects} are described in \citeds{LSE-163} as:
 \begin{itemize}
@@ -82,7 +82,7 @@ For {\tt nearbyObjLnP}, a footnote states {\it "This quantity will be computed b
 The definition of {\tt nearbyObjLnP} is only appropriate for static variable point sources (stars): for transients in host galaxies, the observed {\tt DIAObject} will never be ``the same as the nearby {\tt Object}".
 
 
-\subsection{Relevant to extragalactic transients}\label{ssec:params_trans}
+\subsection{Parameters for extragalactic transients}\label{ssec:params_trans}
 
 There are a wide variety of options to associate extragalactic transients with their host galaxies, as presented in Section \ref{sec:options}. 
 Typically, radial distances in arcseconds such as {\tt nearbyObjDist}, above, are not used in favor of a \emph{separation distance} which accounts for the galaxies' spatial luminosity profiles \citep[e.g.,][]{2006ApJ...648..868S}.
@@ -101,7 +101,7 @@ Thus, considering all galaxies within $\sim$90\arcsec could associate a low-reds
 There would be $\sim$400 background galaxies within this $\sim$90\arcsec radius (scaled from the $\sim$4 billion galaxies expected in the full $\sim$18000 deg$^2$ of the wide-fast-deep main survey), 
 This means that just $\sim$400 separation distances would need to be calculated for each {\tt DIAObject} in order to fill the above table elements. 
 
-\subsubsection{Why this fails for low-redshift transients.}\label{sssec:params_trans_fail}
+\subsubsection{Why these parameters are inadequate for low-redshift transients.}\label{sssec:params_trans_fail}
 In Appendix \ref{sec:appB} we show that up to 1\% of such low-redshift transients would randomly fall within $3R_e$ of three background interloper galaxies, and the true host would not be included in {\tt potentialHost}.
 This issue is exacerbated for low-redshift transients further in the outskirts of their large host galaxies, or transients in the Local Volume -- both of which have a very high scientific value for follow-up programs.
 Furthermore, large, extended, low-redshift galaxies are likely to be significantly fragmented in the DR {\tt Objects} catalog, with plenty of ``child" {\tt Objects} that would complicate host association.
@@ -109,7 +109,7 @@ These issues with low-redshift host association \textit{could} be mitigated by r
 However, Section \ref{ssec:params_lowz} presents a more straightforward solution to low-redshift host association.
 
 
-\subsection{Relevant to low-redshift extragalactic transients}\label{ssec:params_lowz}
+\subsection{Parameters for low-redshift extragalactic transients}\label{ssec:params_lowz}
 
 An established catalog of low-redshift galaxies (e.g., from the NGC/IC list of $\lesssim$14000 Revised New General Catalogue and Index Catalogue; TBD) will be adopted, and all new {\tt DIAObjects} will be cross-matched to it during Alert Production in order to report the name and the radial sky separation of the nearest low-redshift galaxy:
 \begin{itemize}
